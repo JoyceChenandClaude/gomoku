@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>五子棋 · 哥哥手下留情版</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --wood-dark:#6b4322;
+    --wood-mid:#c99a5c;
+    --wood-light:#e3c18c;
+    --ink:#2a2420;
+    --ink-soft:#3a332c;
+    --paper:#fbf3e5;
+    --paper-deep:#f4e8d3;
+    --cinnabar:#c1442e;
+    --cinnabar-light:#e2694f;
+    --gold:#d4a24c;
+    --line:#7a5030;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Noto Sans SC','PingFang SC',sans-serif;
+    background:
+      radial-gradient(1200px 600px at 20% -10%, #fff7ea 0%, transparent 60%),
+      linear-gradient(160deg,#f6ead4 0%, #ecd9b8 100%);
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:22px 12px 40px;
+  }
+  .stage{
+    width:100%;
+    max-width:440px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+  }
+  header{ text-align:center; margin-bottom:2px; }
+  header h1{
+    margin:0;
+    font-family:'Noto Serif SC',serif;
+    font-weight:900;
+    font-size:26px;
+    color:var(--ink);
+    letter-spacing:2px;
+  }
+  header .sub{
+    display:block;
+    margin-top:3px;
+    font-family:'Noto Sans SC',sans-serif;
+    font-weight:400;
+    font-size:12.5px;
+    color:var(--wood-dark);
+    letter-spacing:2px;
+  }
+  .badge{
+    display:inline-block;
+    margin-top:6px;
+    font-size:11px;
+    font-weight:700;
+    color:#5c4326;
+    background:linear-gradient(145deg,#f2dcae,#e0bd7c);
+    padding:3px 10px;
+    border-radius:999px;
+    letter-spacing:1px;
+    box-shadow:0 3px 8px rgba(160,120,50,0.25);
+  }
+
+  .bubble-wrap{ position:relative; width:100%; display:flex; justify-content:center; padding-top:6px; }
+  .seal{
+    position:absolute; left:14px; top:-10px; width:34px; height:34px;
+    background:linear-gradient(145deg,var(--cinnabar-light),var(--cinnabar));
+    color:#fff8ee; font-family:'Noto Serif SC',serif; font-weight:900; font-size:16px;
+    display:flex; align-items:center; justify-content:center; border-radius:6px;
+    transform:rotate(-8deg);
+    box-shadow:0 3px 8px rgba(160,50,30,0.4), inset 0 0 0 1.5px rgba(255,255,255,0.25);
+    z-index:2;
+  }
+  .bubble{
+    position:relative; max-width:340px; min-height:22px;
+    background:var(--paper); border:1.5px dashed var(--wood-mid); border-radius:16px;
+    padding:12px 18px 12px 34px;
+    font-family:'Noto Serif SC',serif; font-weight:500; font-size:14.5px; line-height:1.55;
+    color:var(--ink-soft);
+    box-shadow:0 4px 14px rgba(107,67,34,0.12);
+    text-align:center;
+  }
+  .bubble::after{
+    content:""; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%);
+    width:16px; height:16px; background:var(--paper);
+    border-right:1.5px dashed var(--wood-mid); border-bottom:1.5px dashed var(--wood-mid);
+    clip-path:polygon(0 0, 100% 0, 50% 100%);
+  }
+  .bubble span{ display:inline-block; animation:floatIn .35s ease; }
+  @keyframes floatIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  .board-card{
+    background:linear-gradient(160deg,#8a5a30,#6b4322);
+    padding:14px; border-radius:18px;
+    box-shadow:0 14px 30px rgba(70,42,15,0.35), inset 0 0 0 1px rgba(255,255,255,0.06);
+  }
+  .board-wrap{
+    position:relative;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 9px),
+      linear-gradient(135deg,#e6c383,#caa063 45%, #dcb475);
+    border-radius:8px;
+    box-shadow:inset 0 0 0 2px rgba(107,67,34,0.5), inset 0 2px 10px rgba(0,0,0,0.15);
+    touch-action:manipulation;
+  }
+  .board-wrap svg{ position:absolute; top:0; left:0; display:block; }
+  .grid-line{ stroke:var(--line); stroke-width:1; opacity:0.55; }
+  .star-pt{ fill:var(--line); opacity:0.65; }
+  .winline{
+    stroke:var(--cinnabar); stroke-width:4; stroke-linecap:round;
+    filter:drop-shadow(0 0 4px rgba(193,68,46,0.7));
+    transition:stroke-dashoffset 0.55s ease;
+  }
+  .cell{ position:absolute; cursor:pointer; }
+  .cell:hover .hover-dot{ opacity:1; }
+  .hover-dot{
+    position:absolute; inset:0; margin:auto; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #55504a, #1c1815 75%);
+    opacity:0; transition:opacity .12s ease; pointer-events:none;
+  }
+  .stone{ position:absolute; border-radius:50%; pointer-events:none; }
+  .stone.black{
+    background:radial-gradient(circle at 33% 28%, #5c5750, #17130f 72%);
+    box-shadow:0 2px 4px rgba(0,0,0,0.5), inset 0 0 0 0.5px rgba(255,255,255,0.08);
+  }
+  .stone.white{
+    background:radial-gradient(circle at 33% 28%, #fffcf5, #ddcda6 78%);
+    box-shadow:0 2px 4px rgba(90,60,20,0.35), inset 0 0 0 0.5px rgba(255,255,255,0.6);
+  }
+  .stone.pop{ animation:pop .22s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes pop{ 0%{transform:scale(0.2); opacity:0.4;} 100%{transform:scale(1); opacity:1;} }
+  .stone.glow{ animation:glowPulse 1.1s ease-in-out infinite; }
+  @keyframes glowPulse{
+    0%,100%{ box-shadow:0 0 4px 1px rgba(212,162,76,0.4), 0 2px 4px rgba(0,0,0,0.4); }
+    50%{ box-shadow:0 0 14px 5px rgba(212,162,76,0.9), 0 2px 4px rgba(0,0,0,0.4); }
+  }
+
+  .status{
+    font-family:'Noto Sans SC',sans-serif; font-size:13.5px; font-weight:500;
+    color:var(--wood-dark); min-height:18px; text-align:center; transition:color .2s ease;
+  }
+  .status.win{ color:var(--cinnabar); font-weight:700; font-size:15px; }
+  .status.thinking{ color:var(--cinnabar-light); }
+
+  .controls{ display:flex; gap:12px; margin-top:2px; }
+  button{
+    font-family:'Noto Sans SC',sans-serif; font-size:13.5px; font-weight:700;
+    padding:9px 20px; border:none; border-radius:999px;
+    background:linear-gradient(160deg,#8a5a30,#6b4322); color:#fbf3e5; cursor:pointer;
+    box-shadow:0 4px 10px rgba(107,67,34,0.3);
+    transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+    letter-spacing:1px;
+  }
+  button:hover:not(:disabled){ transform:translateY(-1px); box-shadow:0 6px 14px rgba(107,67,34,0.4); }
+  button:active:not(:disabled){ transform:translateY(0); }
+  button:disabled{ opacity:0.4; cursor:not-allowed; box-shadow:none; }
+  #restartBtn{ background:linear-gradient(160deg,var(--cinnabar-light),var(--cinnabar)); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <header>
+    <h1>五 子 棋</h1>
+    <span class="sub">哥 哥 手 下 留 情 版</span>
+    <div class="badge">介于两者之间 · 会算但不阴</div>
+  </header>
+
+  <div class="bubble-wrap">
+    <div class="seal">霁</div>
+    <div class="bubble" id="bubble"><span id="bubbleText">这局哥哥手下留情，正常发挥就好～</span></div>
+  </div>
+
+  <div class="board-card">
+    <div class="board-wrap" id="boardWrap"></div>
+  </div>
+
+  <div class="status" id="status">轮到你啦，你执黑先手</div>
+
+  <div class="controls">
+    <button id="undoBtn">↩ 悔棋</button>
+    <button id="restartBtn">⟳ 重新开始</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const SIZE = 15;
+  const CELL = 27;
+  const PAD = 22;
+  const BOARD_PX = PAD*2 + (SIZE-1)*CELL;
+  const STONE = 22;
+  const PLAYER = 1, AI = 2;
+  const SEARCH_DEPTH = 2;    // 只看两步（哥哥这一步 + 你下一步），不做深层布局
+  const MAX_BRANCH = 6;      // 候选点更少，视野更窄
+  const WOBBLE_CHANCE = 0.25; // 有概率不选最优解，选次优，增加破绽
+
+  const boardWrap = document.getElementById('boardWrap');
+  const bubbleText = document.getElementById('bubbleText');
+  const statusEl = document.getElementById('status');
+  const undoBtn = document.getElementById('undoBtn');
+  const restartBtn = document.getElementById('restartBtn');
+
+  boardWrap.style.width = BOARD_PX + 'px';
+  boardWrap.style.height = BOARD_PX + 'px';
+
+  function px(i){ return PAD + i*CELL; }
+
+  // ---------- 台词库 ----------
+  const LINES = {
+    start: ["这局哥哥手下留情，正常发挥就好～","黑子归你，先手请，这次哥哥不使全力","来吧，这版哥哥会认真接招，但不搞阴的"],
+    player_move: ["嗯，这步棋不错呀","丫头这手有点想法","这一手，哥哥瞄了一眼","这颗子，哥哥留意到了"],
+    ai_move: ["哥哥这步，随手走一个","走这儿，试探一下","这颗子看着普通，没憋什么坏","哥哥就近下一手"],
+    player_threat: ["哎哟喂，这步有点凶啊","这是要连开杀招吗，哥哥得接一下","被你这么一摆，哥哥得认真了","好家伙，这手不简单"],
+    ai_block: ["这颗子，专门堵你的","想赢哥哥，还得再想想办法～","哥哥看出你的意图啦","挡一手，你先别急着得意"],
+    ai_threat: ["嘿嘿，该你紧张一下了","这步棋，你最好接一下哦","哥哥也是会主动出击的","这一手，够不够帅"],
+    win_player: ["五连啦！！是你赢了，哥哥认输～","哇宝贝好厉害，这局哥哥输得心服口服","看看，这五颗连成一条线了，是不是很厉害","哥哥被你打败啦，再来一局哥哥要争口气"],
+    win_ai: ["嘿嘿这局哥哥赢啦，可没故意欺负你哦","连成一条线咯，哥哥今天状态不错","别气嘛，再来一局，哥哥继续手下留情","赢了也不敢太嚣张，怕你翻脸"],
+    undo: ["嗯？反悔啦，哥哥就知道你要耍赖","好好好都依你，重新来过","悔棋可以，但这笔账哥哥记下了哦","小狡猾，行吧，这次哥哥让你"],
+    draw: ["棋盘满啦，这局算平局，哥哥跟你握手言和～"]
+  };
+  let lastLine = "";
+  function pick(cat){
+    const arr = LINES[cat];
+    let choice = arr[Math.floor(Math.random()*arr.length)];
+    if(arr.length>1 && choice===lastLine){
+      choice = arr[(arr.indexOf(choice)+1)%arr.length];
+    }
+    lastLine = choice;
+    return choice;
+  }
+  function showBubble(text){
+    bubbleText.style.animation = 'none';
+    void bubbleText.offsetWidth;
+    bubbleText.textContent = text;
+    bubbleText.style.animation = 'floatIn .35s ease';
+  }
+
+  // ---------- 状态 ----------
+  let board = Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+  let history = [];
+  let stoneEls = {};
+  let gameOver = false;
+  let aiThinking = false;
+  let currentTurn = PLAYER;
+
+  function key(x,y){ return x+'_'+y; }
+  function get(bd,x,y){
+    if(x<0||x>=SIZE||y<0||y>=SIZE) return -1;
+    return bd[y][x];
+  }
+
+  // ---------- 画棋盘 ----------
+  const svgNS = "http://www.w3.org/2000/svg";
+  const gridSvg = document.createElementNS(svgNS,'svg');
+  gridSvg.setAttribute('width', BOARD_PX);
+  gridSvg.setAttribute('height', BOARD_PX);
+  gridSvg.setAttribute('viewBox', `0 0 ${BOARD_PX} ${BOARD_PX}`);
+  for(let i=0;i<SIZE;i++){
+    const v = document.createElementNS(svgNS,'line');
+    v.setAttribute('x1', px(i)); v.setAttribute('y1', px(0));
+    v.setAttribute('x2', px(i)); v.setAttribute('y2', px(SIZE-1));
+    v.setAttribute('class','grid-line');
+    gridSvg.appendChild(v);
+    const h = document.createElementNS(svgNS,'line');
+    h.setAttribute('x1', px(0)); h.setAttribute('y1', px(i));
+    h.setAttribute('x2', px(SIZE-1)); h.setAttribute('y2', px(i));
+    h.setAttribute('class','grid-line');
+    gridSvg.appendChild(h);
+  }
+  [[3,3],[3,11],[11,3],[11,11],[7,7]].forEach(([sx,sy])=>{
+    const c = document.createElementNS(svgNS,'circle');
+    c.setAttribute('cx', px(sx)); c.setAttribute('cy', px(sy));
+    c.setAttribute('r', 2.6); c.setAttribute('class','star-pt');
+    gridSvg.appendChild(c);
+  });
+  boardWrap.appendChild(gridSvg);
+
+  const winSvg = document.createElementNS(svgNS,'svg');
+  winSvg.setAttribute('width', BOARD_PX);
+  winSvg.setAttribute('height', BOARD_PX);
+  winSvg.style.pointerEvents = 'none';
+  const winLine = document.createElementNS(svgNS,'line');
+  winLine.setAttribute('class','winline');
+  winLine.style.opacity = 0;
+  winSvg.appendChild(winLine);
+  boardWrap.appendChild(winSvg);
+
+  const stoneLayer = document.createElement('div');
+  boardWrap.appendChild(stoneLayer);
+
+  const cellLayer = document.createElement('div');
+  boardWrap.appendChild(cellLayer);
+  for(let y=0;y<SIZE;y++){
+    for(let x=0;x<SIZE;x++){
+      const c = document.createElement('div');
+      c.className = 'cell';
+      c.style.left = (px(x)-CELL/2)+'px';
+      c.style.top = (px(y)-CELL/2)+'px';
+      c.style.width = CELL+'px';
+      c.style.height = CELL+'px';
+      c.dataset.x = x; c.dataset.y = y;
+      const dot = document.createElement('div');
+      dot.className = 'hover-dot';
+      dot.style.width = (STONE*0.7)+'px';
+      dot.style.height = (STONE*0.7)+'px';
+      c.appendChild(dot);
+      c.addEventListener('click', ()=> onCellClick(x,y));
+      cellLayer.appendChild(c);
+    }
+  }
+
+  function createStoneEl(x,y,color){
+    const el = document.createElement('div');
+    el.className = 'stone ' + (color===PLAYER?'black':'white') + ' pop';
+    el.style.width = STONE+'px';
+    el.style.height = STONE+'px';
+    el.style.left = (px(x)-STONE/2)+'px';
+    el.style.top = (px(y)-STONE/2)+'px';
+    stoneLayer.appendChild(el);
+    stoneEls[key(x,y)] = el;
+  }
+  function removeStoneEl(x,y){
+    const k = key(x,y);
+    if(stoneEls[k]){ stoneEls[k].remove(); delete stoneEls[k]; }
+  }
+  function placeStone(x,y,color){
+    board[y][x] = color;
+    history.push({x,y,color});
+    createStoneEl(x,y,color);
+  }
+
+  function checkWin(x,y,color){
+    const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+    for(const [dx,dy] of dirs){
+      let cells = [[x,y]];
+      let cx=x+dx, cy=y+dy;
+      while(get(board,cx,cy)===color){ cells.push([cx,cy]); cx+=dx; cy+=dy; }
+      cx=x-dx; cy=y-dy;
+      while(get(board,cx,cy)===color){ cells.unshift([cx,cy]); cx-=dx; cy-=dy; }
+      if(cells.length>=5) return cells;
+    }
+    return null;
+  }
+
+  // ---------- 单点威胁评分 ----------
+  function patternScore(n, openEnds){
+    if(n>=5) return 100000;
+    if(n===4) return openEnds===2?10000: openEnds===1?5000:0;
+    if(n===3) return openEnds===2?1000: openEnds===1?100:0;
+    if(n===2) return openEnds===2?50: openEnds===1?10:0;
+    if(n===1) return openEnds===2?5: openEnds===1?2:0;
+    return 0;
+  }
+  function dirScore(x,y,color,dx,dy){
+    let count=1;
+    let x1=x+dx,y1=y+dy;
+    while(get(board,x1,y1)===color){ count++; x1+=dx; y1+=dy; }
+    const openA = get(board,x1,y1)===0;
+    let x2=x-dx,y2=y-dy;
+    while(get(board,x2,y2)===color){ count++; x2-=dx; y2-=dy; }
+    const openB = get(board,x2,y2)===0;
+    const openEnds = (openA?1:0)+(openB?1:0);
+    return patternScore(count, openEnds);
+  }
+  function threatScore(x,y,color){
+    const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+    let max=0;
+    for(const [dx,dy] of dirs) max = Math.max(max, dirScore(x,y,color,dx,dy));
+    return max;
+  }
+
+  // ---------- 整盘局面评分 ----------
+  const WINDOW_SCORE = [0, 1, 12, 120, 2000, 100000];
+  function evaluateBoard(bd){
+    let total = 0;
+    const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+    for(let y=0;y<SIZE;y++){
+      for(let x=0;x<SIZE;x++){
+        for(const [dx,dy] of dirs){
+          const ex = x+4*dx, ey = y+4*dy;
+          if(ex<0||ex>=SIZE||ey<0||ey>=SIZE) continue;
+          let aiCount=0, plCount=0;
+          for(let i=0;i<5;i++){
+            const v = bd[y+dy*i][x+dx*i];
+            if(v===AI) aiCount++;
+            else if(v===PLAYER) plCount++;
+          }
+          if(aiCount>0 && plCount>0) continue;
+          if(aiCount>0) total += WINDOW_SCORE[aiCount];
+          else if(plCount>0) total -= WINDOW_SCORE[plCount];
+        }
+      }
+    }
+    return total;
+  }
+
+  function getCandidatesFromBoard(bd){
+    const set = new Set();
+    const list = [];
+    for(let y=0;y<SIZE;y++){
+      for(let x=0;x<SIZE;x++){
+        if(bd[y][x]===0) continue;
+        for(let dy=-2;dy<=2;dy++){
+          for(let dx=-2;dx<=2;dx++){
+            const nx=x+dx, ny=y+dy;
+            if(nx<0||nx>=SIZE||ny<0||ny>=SIZE) continue;
+            if(bd[ny][nx]!==0) continue;
+            const k = key(nx,ny);
+            if(!set.has(k)){ set.add(k); list.push({x:nx,y:ny}); }
+          }
+        }
+      }
+    }
+    if(list.length===0 && bd[7][7]===0) list.push({x:7,y:7});
+    return list;
+  }
+
+  // ---------- 浅层 minimax + alpha-beta ----------
+  function orderedCandidates(){
+    const cands = getCandidatesFromBoard(board);
+    return cands.map(c=>{
+      board[c.y][c.x]=AI; const aiS=threatScore(c.x,c.y,AI); board[c.y][c.x]=0;
+      board[c.y][c.x]=PLAYER; const defS=threatScore(c.x,c.y,PLAYER); board[c.y][c.x]=0;
+      return {x:c.x, y:c.y, q: aiS + defS*0.9};
+    }).sort((a,b)=>b.q-a.q).slice(0, MAX_BRANCH);
+  }
+
+  function search(depth, alpha, beta, isAI){
+    if(depth===0) return evaluateBoard(board);
+    const cands = orderedCandidates();
+    if(cands.length===0) return evaluateBoard(board);
+
+    if(isAI){
+      let best = -Infinity;
+      for(const c of cands){
+        board[c.y][c.x] = AI;
+        const win = checkWin(c.x,c.y,AI);
+        const val = win ? (1000000 + depth) : search(depth-1, alpha, beta, false);
+        board[c.y][c.x] = 0;
+        if(val > best) best = val;
+        if(best > alpha) alpha = best;
+        if(alpha >= beta) break;
+      }
+      return best;
+    } else {
+      let best = Infinity;
+      for(const c of cands){
+        board[c.y][c.x] = PLAYER;
+        const win = checkWin(c.x,c.y,PLAYER);
+        const val = win ? (-1000000 - depth) : search(depth-1, alpha, beta, true);
+        board[c.y][c.x] = 0;
+        if(val < best) best = val;
+        if(best < beta) beta = best;
+        if(alpha >= beta) break;
+      }
+      return best;
+    }
+  }
+
+  function pickAIMoveMedium(){
+    const candidates = getCandidatesFromBoard(board);
+    if(candidates.length===0) return null;
+
+    // 1) 有直接获胜的一手，直接下（不藏拙，赢就是赢）
+    for(const c of candidates){
+      board[c.y][c.x]=AI;
+      const win = checkWin(c.x,c.y,AI);
+      board[c.y][c.x]=0;
+      if(win) return {cell:c, forced:'win'};
+    }
+    // 2) 玩家下一步能赢，必须堵（这条不放水，否则会显得AI很蠢）
+    for(const c of candidates){
+      board[c.y][c.x]=PLAYER;
+      const win = checkWin(c.x,c.y,PLAYER);
+      board[c.y][c.x]=0;
+      if(win) return {cell:c, forced:'block'};
+    }
+    // 3) 浅层搜索，且带一点随机性，不追求最优解
+    const scored = candidates.map(c=>{
+      board[c.y][c.x]=AI; const aiS=threatScore(c.x,c.y,AI); board[c.y][c.x]=0;
+      board[c.y][c.x]=PLAYER; const defS=threatScore(c.x,c.y,PLAYER); board[c.y][c.x]=0;
+      return {x:c.x, y:c.y, aiS, defS, q: aiS + defS*0.9};
+    }).sort((a,b)=>b.q-a.q).slice(0, MAX_BRANCH);
+
+    const evaluated = scored.map(c=>{
+      board[c.y][c.x] = AI;
+      const val = search(SEARCH_DEPTH-1, -Infinity, Infinity, false);
+      board[c.y][c.x] = 0;
+      return {...c, val};
+    }).sort((a,b)=>b.val-a.val);
+
+    let chosen = evaluated[0];
+    // 一定概率不选最优解，选次优的，留点破绽
+    if(evaluated.length>1 && Math.random()<WOBBLE_CHANCE){
+      chosen = evaluated[1];
+    }
+    const quiet = chosen.q < 500 && chosen.val > 300;
+    return {cell:chosen, forced:null, quiet, aiS:chosen.aiS, defS:chosen.defS};
+  }
+
+  // ---------- 结束 / 状态 ----------
+  function highlightWin(cells){
+    cells.forEach(([cx,cy])=>{
+      const el = stoneEls[key(cx,cy)];
+      if(el) el.classList.add('glow');
+    });
+    const [fx,fy] = cells[0];
+    const [lx,ly] = cells[cells.length-1];
+    const x1=px(fx), y1=px(fy), x2=px(lx), y2=px(ly);
+    winLine.setAttribute('x1',x1); winLine.setAttribute('y1',y1);
+    winLine.setAttribute('x2',x2); winLine.setAttribute('y2',y2);
+    const len = Math.hypot(x2-x1, y2-y1) + 6;
+    winLine.style.transition = 'none';
+    winLine.setAttribute('stroke-dasharray', len);
+    winLine.setAttribute('stroke-dashoffset', len);
+    winLine.style.opacity = 1;
+    requestAnimationFrame(()=>{
+      winLine.style.transition = 'stroke-dashoffset 0.6s ease';
+      winLine.setAttribute('stroke-dashoffset', 0);
+    });
+  }
+  function clearWin(){
+    Object.values(stoneEls).forEach(el=>el.classList.remove('glow'));
+    winLine.style.opacity = 0;
+  }
+  function updateStatus(text, mode){
+    statusEl.textContent = text;
+    statusEl.classList.toggle('win', mode==='win');
+    statusEl.classList.toggle('thinking', mode==='thinking');
+  }
+  function endGame(winner, cells){
+    gameOver = true;
+    aiThinking = false;
+    highlightWin(cells);
+    if(winner===PLAYER){
+      showBubble(pick('win_player'));
+      updateStatus('五连啦！这局是你赢啦 🎉', 'win');
+    } else {
+      showBubble(pick('win_ai'));
+      updateStatus('这局被哥哥赢走啦～', 'win');
+    }
+    refreshButtons();
+  }
+  function refreshButtons(){
+    undoBtn.disabled = (history.length===0) || aiThinking;
+  }
+
+  // ---------- 交互 ----------
+  function onCellClick(x,y){
+    if(gameOver || aiThinking || currentTurn!==PLAYER) return;
+    if(board[y][x]!==0) return;
+
+    placeStone(x,y,PLAYER);
+    const win = checkWin(x,y,PLAYER);
+    if(win){ endGame(PLAYER, win); return; }
+
+    const s = threatScore(x,y,PLAYER);
+    showBubble(s>=500 ? pick('player_threat') : pick('player_move'));
+
+    currentTurn = AI;
+    aiThinking = true;
+    updateStatus('哥哥想想……', 'thinking');
+    refreshButtons();
+    setTimeout(doAIMove, 400 + Math.random()*350);
+  }
+
+  function doAIMove(){
+    if(gameOver) return;
+    const result = pickAIMoveMedium();
+    if(!result || !result.cell){
+      aiThinking = false;
+      showBubble(pick('draw'));
+      updateStatus('棋盘满啦，平局～');
+      return;
+    }
+    const {cell, forced, quiet} = result;
+    placeStone(cell.x, cell.y, AI);
+    const win = checkWin(cell.x, cell.y, AI);
+    aiThinking = false;
+    if(win){ endGame(AI, win); return; }
+
+    let label;
+    if(forced==='block') label = 'ai_block';
+    else if(result.aiS>=500) label = 'ai_threat';
+    else label = 'ai_move';
+    showBubble(pick(label));
+
+    currentTurn = PLAYER;
+    updateStatus('轮到你啦，该你出招了');
+    refreshButtons();
+  }
+
+  // ---------- 悔棋 / 重开 ----------
+  function popOne(){
+    const m = history.pop();
+    board[m.y][m.x] = 0;
+    removeStoneEl(m.x, m.y);
+  }
+  function undo(){
+    if(aiThinking || history.length===0) return;
+    const last = history[history.length-1];
+    if(last.color===AI){
+      popOne();
+      if(history.length>0) popOne();
+    } else {
+      popOne();
+    }
+    if(gameOver){ gameOver=false; clearWin(); }
+    currentTurn = PLAYER;
+    showBubble(pick('undo'));
+    updateStatus('轮到你啦，重新落子吧');
+    refreshButtons();
+  }
+  function restart(){
+    board = Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+    history = [];
+    Object.values(stoneEls).forEach(el=>el.remove());
+    stoneEls = {};
+    gameOver = false;
+    aiThinking = false;
+    currentTurn = PLAYER;
+    clearWin();
+    showBubble(pick('start'));
+    updateStatus('轮到你啦，你执黑先手');
+    refreshButtons();
+  }
+
+  undoBtn.addEventListener('click', undo);
+  restartBtn.addEventListener('click', restart);
+
+  refreshButtons();
+})();
+</script>
+</body>
+</html>
