@@ -200,9 +200,9 @@
   const BOARD_PX = PAD*2 + (SIZE-1)*CELL;
   const STONE = 22;
   const PLAYER = 1, AI = 2;
-  const SEARCH_DEPTH = 2;    // 只看两步（哥哥这一步 + 你下一步），不做深层布局
-  const MAX_BRANCH = 6;      // 候选点更少，视野更窄
-  const WOBBLE_CHANCE = 0.25; // 有概率不选最优解，选次优，增加破绽
+  const SEARCH_DEPTH = 3;    // 只看两步（哥哥这一步 + 你下一步），不做深层布局
+  const MAX_BRANCH = 7;      // 候选点更少，视野更窄
+  const WOBBLE_CHANCE = 0.12; // 有概率不选最优解，选次优，增加破绽
 
   const boardWrap = document.getElementById('boardWrap');
   const bubbleText = document.getElementById('bubbleText');
